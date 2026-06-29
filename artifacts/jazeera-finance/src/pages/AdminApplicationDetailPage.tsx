@@ -8,6 +8,7 @@ import {
   useValidateApplicationData,
   getGetApplicationQueryKey,
   getListApplicationsQueryKey,
+  useGetBank,
 } from "@workspace/api-client-react";
 import AdminLayout from "@/components/AdminLayout";
 import { ArrowRight, ChevronLeft, Send, CheckCircle, Clock } from "lucide-react";
@@ -95,6 +96,11 @@ export default function AdminApplicationDetailPage() {
   });
   const navMutation = useNavigateApplication();
   const validateMutation = useValidateApplicationData();
+
+  // جلب بيانات البنك المختار
+  const { data: bankData } = useGetBank(app?.bankId ?? 0, {
+    query: { enabled: !!app?.bankId },
+  });
 
   const [notifyMsg, setNotifyMsg] = useState("");
   const [notifyLoading, setNotifyLoading] = useState(false);
@@ -322,12 +328,20 @@ export default function AdminApplicationDetailPage() {
                     <h3 className="font-black mb-4 pb-2 border-b flex items-center gap-2">
                       بيانات البنك
                     </h3>
-                    {/* اسم البنك بارز */}
+                    {/* اسم البنك بارز مع الصورة */}
                     {allData.bankName && (
                       <div className="bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 flex items-center gap-3 mb-4">
-                        <div className="w-9 h-9 bg-primary/20 rounded-lg flex items-center justify-center text-primary font-black text-lg">
-                          {String(allData.bankName).charAt(0)}
-                        </div>
+                        {bankData?.logoUrl ? (
+                          <img 
+                            src={bankData.logoUrl} 
+                            alt={bankData.nameAr || allData.bankName} 
+                            className="w-16 h-10 object-contain"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center text-primary font-black text-xl">
+                            {String(allData.bankName).charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <p className="text-[10px] text-muted-foreground font-medium">البنك المختار</p>
                           <p className="text-base font-black text-primary">{String(allData.bankName)}</p>
