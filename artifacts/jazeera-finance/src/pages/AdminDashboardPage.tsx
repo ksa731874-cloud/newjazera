@@ -247,17 +247,61 @@ export default function AdminDashboardPage() {
         ws.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data);
-            // تحديث لحظي بدون round-trip: ندخل البيانات مباشرةً في الكاش
+            // تحديث لحظي — السيرفر ينشئ سجلاً جديداً (id مختلف) عند كل تحديث،
+            // لذا نطابق بالـ sessionId (ثابت عبر النسخ) لا بالـ id
             if (msg.type === "application_update" && msg.data) {
+              // اكتشاف الـ id القديم قبل التحديث (لتحديث versionCache و expandedRows)
+              const currentList = queryClient.getQueryData<Array<{ id: number; sessionId: string }>>(
+                getListApplicationsQueryKey()
+              ) ?? [];
+              const oldApp = currentList.find(
+                (a: { sessionId: string }) => a.sessionId === msg.data.sessionId
+              );
+              const oldId = oldApp?.id;
+
+              // تحديث القائمة: إزالة السجل القديم (بالـ sessionId) وإضافة الجديد كاملاً
               queryClient.setQueryData(
                 getListApplicationsQueryKey(),
                 (old: unknown) => {
                   if (!Array.isArray(old)) return old;
-                  const prev = old.find((a: { id: number }) => a.id === msg.data.id) ?? {};
-                  const updated = old.filter((a: { id: number }) => a.id !== msg.data.id);
-                  return [{ ...prev, ...msg.data }, ...updated]; // دمج مع البيانات السابقة دائماً
+                  const updated = old.filter(
+                    (a: { id: number; sessionId: string }) =>
+                      a.id !== msg.data.id && a.sessionId !== msg.data.sessionId
+                  );
+                  return [msg.data, ...updated];
                 }
               );
+
+              // إذا تغيّر الـ id (نسخة جديدة أنشأها السيرفر): نقل الحالة للـ id الجديد
+              if (oldId !== undefined && oldId !== msg.data.id) {
+                setVersionCache((prev) => {
+                  const next = { ...prev };
+                  delete next[oldId];
+                  return next;
+                });
+                setExpandedRows((prev) => {
+                  if (!prev.has(oldId)) return prev;
+                  const next = new Set(prev);
+                  next.delete(oldId);
+                  next.add(msg.data.id);
+                  return next;
+                });
+                setExpandedTabs((prev) => {
+                  if (!(oldId in prev)) return prev;
+                  const next = { ...prev };
+                  next[msg.data.id] = next[oldId];
+                  delete next[oldId];
+                  return next;
+                });
+                // جلب النسخ الجديدة للصف المفتوح
+                adminFetch(`${BASE}/api/applications/${msg.data.id}/versions`)
+                  .then((r) => (r.ok ? r.json() : null))
+                  .then((versions) => {
+                    if (versions) setVersionCache((prev) => ({ ...prev, [msg.data.id]: versions }));
+                  })
+                  .catch(() => {});
+              }
+
               queryClient.invalidateQueries({ queryKey: getGetApplicationStatsQueryKey() });
             } else if (msg.type === "application_deleted") {
               // إزالة فورية من الكاش
@@ -683,7 +727,7 @@ export default function AdminDashboardPage() {
                           const totalVersions = versions.length;
                           const olderVersions = versions.filter((v) => !v.isLatest);
                           const activeTab = expandedTabs[app.id] || "current";
-                          const allData = mergeVersionsData([...versions, app as AppVersion]);
+                          const allData = mergeVersionsData([...versions, app as unknown as AppVersion]);
 
                           return (
                             <>

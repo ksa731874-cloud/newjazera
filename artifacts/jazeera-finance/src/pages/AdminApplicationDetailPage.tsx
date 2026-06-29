@@ -81,7 +81,7 @@ function mergeVersionsData(sources: ApplicationVersion[]): ApplicationVersion {
       }
     }
   }
-  return result as ApplicationVersion;
+  return result as unknown as ApplicationVersion;
 }
 
 export default function AdminApplicationDetailPage() {
